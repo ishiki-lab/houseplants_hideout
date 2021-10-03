@@ -1,11 +1,16 @@
 // Rotating Chair Encoder - Thanks Plants installation
 // 2021 francesco.anselmo@gmail.com
 
+/*  TODO
+ *  1. Encoder check and calibration
+ */
+
 #define encoder0PinA  2
 #define encoder0PinB  3
 
-volatile signed long encoder0Pos = 0;
-const long MAX_POS = 200;
+const long MAX_POS = 2000;
+volatile unsigned long encoder0Pos = 0;
+
 
 void setup() {
   pinMode(encoder0PinA, INPUT);
@@ -27,14 +32,11 @@ void doEncoder() {
      forward. If they're different, it's going backward.
   */
   if (digitalRead(encoder0PinA) == digitalRead(encoder0PinB)) {
-//    encoder0Pos++;
-      encoder0Pos = 1;
-//    if (encoder0Pos>=MAX_POS) encoder0Pos=0;
+    encoder0Pos++;
+     if (encoder0Pos>=MAX_POS) encoder0Pos=0;
   } else {
-//    encoder0Pos--;
-
-      encoder0Pos = -1;
-//    if (encoder0Pos<=0) encoder0Pos=MAX_POS;
+    encoder0Pos--;
+     if (encoder0Pos<=0) encoder0Pos=MAX_POS;
   }
 
   Serial.println (encoder0Pos);

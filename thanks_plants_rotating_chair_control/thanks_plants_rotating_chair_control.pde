@@ -17,13 +17,24 @@
  * 7. The program goes again into IDLE mode and restarts.
  */
 
+/*  TODO
+ *  1. Remove chimes after last bell
+ *  2. Different chimes sounds
+ *  3. Random choice of chimes and groups when in chimes mode (3 out of 6)
+ *  4. DMX support for ambient lighting
+ *  5. Encoder check and calibration
+ *  6. Lighting transition speed support
+ *  7. Web server buttons to enable/disable meditation voice and reset to IDLE
+ *  8. Add a minimum angle check when moving in playing mode
+ */
+
 import processing.serial.*;
 import java.awt.geom.Point2D;
 import ddf.minim.*;
 import processing.net.*;
 
 
-boolean USE_SERIAL = false;
+boolean USE_SERIAL = true;
 boolean USE_HTTP = false;
 
 int NUMBER = 6;
@@ -36,6 +47,7 @@ float VOLUME_LEVEL = 0.2;
 String AMBIENT_SOUND_FILE_NAME = "thanks_plants_audio.mp3";
 String IDLE_SOUND_FILE_NAME = "birdsong.mp3";
 String CHIMES_SOUND_FILE_NAME = "chimes.wav";
+int HTTP_DELAY_TIME = 500;
 
 static abstract class MotionStatus {  
   static final int IDLE = 0;
@@ -139,21 +151,33 @@ void setup() {
   if (USE_HTTP) {
 
     // connect to the ESP 8266 LED lines
-    c1 = new Client(this, "192.168.0.21", 80); // Connect to server on port 80
-    c2 = new Client(this, "192.168.0.22", 80); // Connect to server on port 80
-    c3 = new Client(this, "192.168.0.23", 80); // Connect to server on port 80
-    c4 = new Client(this, "192.168.0.24", 80); // Connect to server on port 80
-    c5 = new Client(this, "192.168.0.25", 80); // Connect to server on port 80
-    c6 = new Client(this, "192.168.0.26", 80); // Connect to server on port 80
-  
+    //c1 = new Client(this, "192.168.0.21", 80); // Connect to server on port 80
+    //c2 = new Client(this, "192.168.0.22", 80); // Connect to server on port 80
+    //c3 = new Client(this, "192.168.0.23", 80); // Connect to server on port 80
+    //c4 = new Client(this, "192.168.0.24", 80); // Connect to server on port 80
+    //c5 = new Client(this, "192.168.0.25", 80); // Connect to server on port 80
+    //c6 = new Client(this, "192.168.0.26", 80); // Connect to server on port 80
+
+    println(str(ambientSoundFile.position())+" - "+"LED lines off at start");
     // switch off the LED lines
-    c1.write("GET /off HTTP/1.0\r\n");
-    c2.write("GET /off HTTP/1.0\r\n");
-    c3.write("GET /off HTTP/1.0\r\n");
-    c4.write("GET /off HTTP/1.0\r\n");
-    c5.write("GET /off HTTP/1.0\r\n");
-    c6.write("GET /off HTTP/1.0\r\n");
-    
+    getHTTP("192.168.0.21","GET /off HTTP/1.0\r\n");
+    getHTTP("192.168.0.21","GET /sinelon HTTP/1.0\r\n");
+    //delay(HTTP_DELAY_TIME);
+    getHTTP("192.168.0.22","GET /off HTTP/1.0\r\n");
+    getHTTP("192.168.0.22","GET /sinelon HTTP/1.0\r\n");
+    //delay(HTTP_DELAY_TIME);
+    getHTTP("192.168.0.23","GET /off HTTP/1.0\r\n");
+    getHTTP("192.168.0.23","GET /sinelon HTTP/1.0\r\n");
+    //delay(HTTP_DELAY_TIME);    
+    getHTTP("192.168.0.24","GET /off HTTP/1.0\r\n");
+    getHTTP("192.168.0.24","GET /sinelon HTTP/1.0\r\n");
+    //delay(HTTP_DELAY_TIME);
+    getHTTP("192.168.0.25","GET /off HTTP/1.0\r\n");
+    getHTTP("192.168.0.25","GET /sinelon HTTP/1.0\r\n");
+    //delay(HTTP_DELAY_TIME);
+    getHTTP("192.168.0.26","GET /off HTTP/1.0\r\n");
+    getHTTP("192.168.0.26","GET /sinelon HTTP/1.0\r\n");
+    //delay(HTTP_DELAY_TIME);    
   }
 }
 
@@ -214,9 +238,9 @@ void draw() {
   }
   else motionStatus = MotionStatus.RUNNING;
 
-  if (millis()%10==0) println("Angle: "+angle+" | Percent movement: "+percentMovement+" | Angle degrees: "+angleDeg+" | Angle end: "+angleDegEnd);
+  //if (millis()%10==0) println("Angle: "+angle+" | Percent movement: "+percentMovement+" | Angle degrees: "+angleDeg+" | Angle end: "+angleDegEnd);
 
-  println("Motion: "+motionStatus+" | "+"Playing: "+playStatus+" | "+millis()+" | "+prevTime+" | "+IDLE_TIME+" | "+(millis()-prevTime));
+  //println("Motion: "+motionStatus+" | "+"Playing: "+playStatus+" | "+millis()+" | "+prevTime+" | "+IDLE_TIME+" | "+(millis()-prevTime));
 
   textFont(f);  
   text("Position: "+str(ambientSoundFile.length()-ambientSoundFile.position()), width/2, height/5.5*5);
@@ -250,13 +274,21 @@ void draw() {
       idleSoundFile.pause();
       ambientSoundFile.play();
       if (USE_HTTP) {  
+        println(str(ambientSoundFile.position())+" - "+"LED lines awaken");
         // LED lines awaken
-        c1.write("GET /awake HTTP/1.0\r\n");
-        c2.write("GET /awake HTTP/1.0\r\n");
-        c3.write("GET /awake HTTP/1.0\r\n");
-        c4.write("GET /awake HTTP/1.0\r\n");
-        c5.write("GET /awake HTTP/1.0\r\n");
-        c6.write("GET /awake HTTP/1.0\r\n");
+        getHTTP("192.168.0.21","GET /orange HTTP/1.0\r\n");
+        getHTTP("192.168.0.21","GET /random HTTP/1.0\r\n");
+        getHTTP("192.168.0.22","GET /orange HTTP/1.0\r\n");
+        getHTTP("192.168.0.22","GET /random HTTP/1.0\r\n");
+        getHTTP("192.168.0.23","GET /orange HTTP/1.0\r\n");
+        getHTTP("192.168.0.23","GET /random HTTP/1.0\r\n");
+        getHTTP("192.168.0.24","GET /orange HTTP/1.0\r\n");
+        getHTTP("192.168.0.24","GET /random HTTP/1.0\r\n");
+        getHTTP("192.168.0.25","GET /orange HTTP/1.0\r\n");
+        getHTTP("192.168.0.25","GET /random HTTP/1.0\r\n");
+        getHTTP("192.168.0.26","GET /orange HTTP/1.0\r\n");
+        getHTTP("192.168.0.26","GET /random HTTP/1.0\r\n");
+
       }
     }
     
@@ -264,13 +296,36 @@ void draw() {
       chimesSoundFile.rewind();
       chimesSoundFile.play();
       if (USE_HTTP) {  
+        println(str(ambientSoundFile.position())+" - "+"LED lines chimes");
+        // LED lines chimes
+        getHTTP("192.168.0.21","GET /orange HTTP/1.0\r\n");
+        getHTTP("192.168.0.21","GET /bpm HTTP/1.0\r\n");
+        getHTTP("192.168.0.22","GET /orange HTTP/1.0\r\n");
+        getHTTP("192.168.0.22","GET /bpm HTTP/1.0\r\n");
+        getHTTP("192.168.0.23","GET /orange HTTP/1.0\r\n");
+        getHTTP("192.168.0.23","GET /bpm HTTP/1.0\r\n");
+        getHTTP("192.168.0.24","GET /orange HTTP/1.0\r\n");
+        getHTTP("192.168.0.24","GET /bpm HTTP/1.0\r\n");
+        getHTTP("192.168.0.25","GET /orange HTTP/1.0\r\n");
+        getHTTP("192.168.0.25","GET /bpm HTTP/1.0\r\n");
+        getHTTP("192.168.0.26","GET /orange HTTP/1.0\r\n");
+        getHTTP("192.168.0.26","GET /bpm HTTP/1.0\r\n");
+
+        println(str(ambientSoundFile.position())+" - "+"LED lines awaken after chimes");
         // LED lines awaken
-        c1.write("GET /chimes HTTP/1.0\r\n");
-        c2.write("GET /chimes HTTP/1.0\r\n");
-        c3.write("GET /chimes HTTP/1.0\r\n");
-        c4.write("GET /chimes HTTP/1.0\r\n");
-        c5.write("GET /chimes HTTP/1.0\r\n");
-        c6.write("GET /chimes HTTP/1.0\r\n");
+        getHTTP("192.168.0.21","GET /orange HTTP/1.0\r\n");
+        getHTTP("192.168.0.21","GET /random HTTP/1.0\r\n");
+        getHTTP("192.168.0.22","GET /orange HTTP/1.0\r\n");
+        getHTTP("192.168.0.22","GET /random HTTP/1.0\r\n");
+        getHTTP("192.168.0.23","GET /orange HTTP/1.0\r\n");
+        getHTTP("192.168.0.23","GET /random HTTP/1.0\r\n");
+        getHTTP("192.168.0.24","GET /orange HTTP/1.0\r\n");
+        getHTTP("192.168.0.24","GET /random HTTP/1.0\r\n");
+        getHTTP("192.168.0.25","GET /orange HTTP/1.0\r\n");
+        getHTTP("192.168.0.25","GET /random HTTP/1.0\r\n");
+        getHTTP("192.168.0.26","GET /orange HTTP/1.0\r\n");
+        getHTTP("192.168.0.26","GET /random HTTP/1.0\r\n");
+
       }
     }
 
@@ -340,19 +395,45 @@ void draw() {
         idleSoundFile.pause();
         ambientSoundFile.play();
         if (USE_HTTP) {  
+          println(str(ambientSoundFile.position())+" - "+"LED lines awaken while not moving");
           // LED lines awaken
-          c1.write("GET /awake HTTP/1.0\r\n");
-          c2.write("GET /awake HTTP/1.0\r\n");
-          c3.write("GET /awake HTTP/1.0\r\n");
-          c4.write("GET /awake HTTP/1.0\r\n");
-          c5.write("GET /awake HTTP/1.0\r\n");
-          c6.write("GET /awake HTTP/1.0\r\n");
+          getHTTP("192.168.0.21","GET /orange HTTP/1.0\r\n");
+          getHTTP("192.168.0.21","GET /random HTTP/1.0\r\n");
+          getHTTP("192.168.0.22","GET /orange HTTP/1.0\r\n");
+          getHTTP("192.168.0.22","GET /random HTTP/1.0\r\n");
+          getHTTP("192.168.0.23","GET /orange HTTP/1.0\r\n");
+          getHTTP("192.168.0.23","GET /random HTTP/1.0\r\n");
+          getHTTP("192.168.0.24","GET /orange HTTP/1.0\r\n");
+          getHTTP("192.168.0.24","GET /random HTTP/1.0\r\n");
+          getHTTP("192.168.0.25","GET /orange HTTP/1.0\r\n");
+          getHTTP("192.168.0.25","GET /random HTTP/1.0\r\n");
+          getHTTP("192.168.0.26","GET /orange HTTP/1.0\r\n");
+          getHTTP("192.168.0.26","GET /random HTTP/1.0\r\n");
         }
       }
       if (ambientSoundFile.position() >= ambientSoundFile.length()) {
         playStatus = PlayStatus.IDLE;
         ambientSoundFile.rewind();
         ambientSoundFile.pause();
+        idleSoundFile.rewind();
+        idleSoundFile.loop();
+        idleSoundFile.play();
+        if (USE_HTTP) {
+          println(str(ambientSoundFile.position())+" - "+"LED lines off after playing");
+          // switch off the LED lines
+          getHTTP("192.168.0.21","GET /off HTTP/1.0\r\n");
+          getHTTP("192.168.0.21","GET /sinelon HTTP/1.0\r\n");
+          getHTTP("192.168.0.22","GET /off HTTP/1.0\r\n");
+          getHTTP("192.168.0.22","GET /sinelon HTTP/1.0\r\n");
+          getHTTP("192.168.0.23","GET /off HTTP/1.0\r\n");
+          getHTTP("192.168.0.23","GET /sinelon HTTP/1.0\r\n");
+          getHTTP("192.168.0.24","GET /off HTTP/1.0\r\n");
+          getHTTP("192.168.0.24","GET /sinelon HTTP/1.0\r\n");
+          getHTTP("192.168.0.25","GET /off HTTP/1.0\r\n");
+          getHTTP("192.168.0.25","GET /sinelon HTTP/1.0\r\n");
+          getHTTP("192.168.0.26","GET /off HTTP/1.0\r\n");
+          getHTTP("192.168.0.26","GET /sinelon HTTP/1.0\r\n");
+        }
       }
   }
 
@@ -360,4 +441,16 @@ void draw() {
 
 void serialEvent(Serial myPort) {
   val = myPort.readStringUntil('\n'); // read it and store it in val
+}
+
+String getHTTP(String IP_ADDRESS, String URL) {
+  String data="";
+  Client c = new Client(this, IP_ADDRESS, 80);;
+  c.write(URL);
+  c.write("\r\n");
+  delay(HTTP_DELAY_TIME);
+  //if (c.available() > 0) { // If there's incoming data from the client...
+  //  data = c.readString(); // ...then grab it and print it
+  //}
+  return(data);
 }

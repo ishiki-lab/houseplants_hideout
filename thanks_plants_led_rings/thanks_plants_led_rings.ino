@@ -18,6 +18,12 @@
  *
  */
 
+/*  TODO
+ *  1. Add Access Point mode
+ *  2. Lighting transition speed support
+ */
+
+
 #define IP_ADDRESS 26 // last number of IP address
 #define NODE_NAME "tp6"
 #define NUM_LEDS   200
