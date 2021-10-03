@@ -1,6 +1,11 @@
 /* Rotating Chair Control - Thanks Plants / Houseplant hideaway installation
  * 2021 francesco.anselmo@gmail.com
  *
+ * Library dependencies:
+ * https://motscousus.com/stuff/2011-01_dmxP512/
+ * https://github.com/transfluxus/SimpleHTTPServer
+ * https://github.com/ddf/Minim
+ *
  * The interaction works like this:
  * 1. The program starts in IDLE mode and plays an inviting sound file, triggers the LED lines to no light and brings 
  *    the ambient DMX lights up to a bright level.
@@ -18,20 +23,23 @@
  */
 
 /*  TODO
- *  1. Random choice of chimes when in chimes mode (3 out of 6)
- *  2. DMX support for ambient lighting
+ *  1. DMX support for ambient lighting
  */
 
 import processing.serial.*;
-import java.awt.geom.Point2D;
 import ddf.minim.*;
 import processing.net.*;
 import http.*;
 import java.util.Map;
+import dmxP512.*;
 
+DmxP512 dmxOutput;
+int universeSize=128;
+
+boolean USE_DMX = false;
 boolean USE_SERIAL = true;
 boolean USE_HTTP = true;
-boolean PLAY_VOICE = false;
+boolean PLAY_VOICE = true;
 
 int LED_LINES_NUMBER = 6;
 float SCALING = 5;
@@ -110,7 +118,6 @@ float percentMovement = 0;
 int fading = 255;
 
 PImage img;
-
 
 String[] chimesFilesNames = {
   "chimes1.wav",
@@ -192,11 +199,24 @@ void setup() {
     chimesLEDlines[i] = new ChimesLEDline(LEDlinesIPAddresses[i], chimesFilesNames[i]);
     
   }
+  
+  if (USE_DMX) {
+    dmxOutput=new DmxP512(this,universeSize,false);
+    String dmxPortName = "/dev/ttyUSB0";
+    dmxOutput.setupDmxPro(dmxPortName,115200);    
+    int nbChannel=16;  
+    for(int i=0;i<nbChannel;i++){
+      for (int j=0;j<=255;j++) {
+        dmxOutput.set(i,j);
+        delay(200);
+      }
+    }
+  }
 
   if (USE_SERIAL) {
-    printArray(Serial.list());
-    String portName = Serial.list()[0]; //change the 0 to a 1 or 2 etc. to match your port
-    //String portName = "/dev/ttyACM0"; 
+    //printArray(Serial.list());
+    //String portName = Serial.list()[0]; //change the 0 to a 1 or 2 etc. to match your port
+    String portName = "/dev/ttyACM0"; 
     encoderPort = new Serial(this, portName, 115200);
     val = encoderPort.readStringUntil(lf);
   }
@@ -253,6 +273,15 @@ void resetToIdle(String uri, HashMap<String, String> parameterMap) {
     for (int i = 0 ; i < LED_LINES_NUMBER ; i++) {
       getHTTP(chimesLEDlines[i].IPAddress,"GET /off HTTP/1.0\r\n");
       getHTTP(chimesLEDlines[i].IPAddress,"GET /gradient HTTP/1.0\r\n");
+    }
+  }
+  if (USE_DMX) {
+    int nbChannel=16;  
+    for(int i=0;i<nbChannel;i++){
+      for (int j=0;j<=255;j++) {
+        dmxOutput.set(i,j);
+        delay(200);
+      }
     }
   }
 }
@@ -354,6 +383,15 @@ void draw() {
 
     if (!ambientSoundFile.isPlaying()) {
       idleSoundFile.pause();
+      if (USE_DMX) {
+        int nbChannel=16;  
+        for(int i=0;i<nbChannel;i++){
+          for (int j=255;j>=0;j--) {
+            dmxOutput.set(i,j);
+            delay(200);
+          }
+        }
+      }
       ambientSoundFile.play();
       meditationSoundFile.play();
       if (USE_HTTP) {  
@@ -528,6 +566,15 @@ void draw() {
           for (int i = 0 ; i < LED_LINES_NUMBER ; i++) {
             getHTTP(chimesLEDlines[i].IPAddress,"GET /off HTTP/1.0\r\n");
             getHTTP(chimesLEDlines[i].IPAddress,"GET /gradient HTTP/1.0\r\n");
+          }
+        }
+        if (USE_DMX) {
+          int nbChannel=16;  
+          for(int i=0;i<nbChannel;i++){
+            for (int j=0;j<=255;j++) {
+              dmxOutput.set(i,j);
+              delay(200);
+            }
           }
         }
       }
