@@ -1,5 +1,5 @@
 /*
- * LED rings lighting - Thanks Plants installation
+ * LED rings lighting - Thanks Plants / Houseplant hideaway installation
  * 2021 francesco.anselmo@gmail.com
  * ESP8266 + WS2812 lighting control for a DaeWha Kang Installation
  *
@@ -18,20 +18,21 @@
  *
  */
 
-/*  TODO
- *  1. Add Access Point mode
- *  2. Lighting transition speed support
- */
-
-
-#define IP_ADDRESS 26 // last number of IP address
+bool ACCESS_POINT=true;
 #define NODE_NAME "tp6"
 #define NUM_LEDS   200
 
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
-#include <ESP8266mDNS.h>
+//#include <ESP8266mDNS.h>
+
+// config static IP
+IPAddress local_IP(192,168,0,21);
+IPAddress gateway(192,168,0,1);
+IPAddress subnet(255,255,255,0);
+//IPAddress dns(8,8,8,8);
+//#define IP_ADDRESS 26 // last number of IP address
 
 #include "FastLED.h"
 
@@ -49,17 +50,18 @@ FASTLED_USING_NAMESPACE
 CRGB leds[NUM_LEDS];
 CRGBPalette16 palette = PartyColors_p;
 
-int transition = 3;
+int transition = 1;
 int brightness = 150;
 int reset_time = 1*60*60*1000;
 
 //#define BRIGHTNESS          96
-#define FRAMES_PER_SECOND  100
+#define FRAMES_PER_SECOND  20
+int speed = FRAMES_PER_SECOND;
  
 const char *ssid = "ThanksPlants2";
 const char *password = "75189501"; // change to real password
  
-MDNSResponder mdns;
+//MDNSResponder mdns;
 ESP8266WebServer server ( 80 );
 const int led = 13;
 uint8_t idx = 0; // rotating index
@@ -127,6 +129,10 @@ void handleRoot() {
     
     out += "<a href='brighten'><span style='display:block; background-color:white; width:100%; height:3em;'>Brighter</span></a><br/>";
     out += "<a href='dim'><span style='display:block; background-color:black; foreground-color:white; width:100%; height:3em;'>Dimmer</span></a><br/>";
+
+    out += "<a href='faster'><span style='display:block; background-color:light-grey; width:100%; height:3em;'>Faster</span></a><br/>";
+    out += "<a href='slower'><span style='display:block; background-color:dark-grey; foreground-color:white; width:100%; height:3em;'>Slower</span></a><br/>";
+
     out += "<a href='white'><span style='display:block; background-color:white; width:100%; height:3em;'></span></a><br/>";
     out += "<a href='green'><span style='display:block; background-color:green; width:100%; height:3em;'></span></a><br/>";
     out += "<a href='yellow'><span style='display:block; background-color:yellow; width:100%; height:3em;'></span></a><br/>";
@@ -175,9 +181,9 @@ void t_sinelon()
 void t_bpm()
 {
   // colored stripes pulsing at a defined Beats-Per-Minute (BPM)
-  uint8_t BeatsPerMinute = 20;
+  uint8_t BeatsPerMinute = int(speed/2);
   uint8_t beat = beatsin8( BeatsPerMinute, 32, 255);
-  for( int i = 0; i < NUM_LEDS; i++) { //9948
+  for( int i = 0; i < NUM_LEDS; i++) { 
     leds[i] = ColorFromPalette(palette, idx+(i*2), beat-idx+(i*10));
   }
 }
@@ -214,40 +220,69 @@ void setup ( void ) {
 
     testLEDs();
     setColor(6);
- 
-    Serial.begin ( 115200 );
-    // config static IP
-    IPAddress ip(192, 168, 0, IP_ADDRESS); // set desired IP Address
-    IPAddress subnet(255, 255, 255, 0); // set subnet mask 
-    IPAddress gateway(192, 168, 0, 1); // set gateway 
-    IPAddress dns(8,8,8,8);
-    //WiFi.config(ip, dns, gateway, subnet);
-    WiFi.config(ip, gateway, subnet, dns);
-    Serial.print(F("Setting static ip to : "));
-    Serial.println(ip);
-    WiFi.begin ( ssid, password );
-    Serial.println ( "" );
-    // Wait for connection
-    while ( WiFi.status() != WL_CONNECTED ) {
-        delay ( 500 );
-        Serial.print ( "." );
+
+    // serial connection to the Arduino running the encoder
+    Serial.begin(115200);
+
+    if (ACCESS_POINT == true) {
+      // configure as WiFi access point      
+      Serial.print("Configuring access point...");
+      WiFi.softAPConfig (local_IP, gateway, subnet);
+      WiFi.softAP(ssid, password);
+    
+      IPAddress myIP = WiFi.softAPIP();
+      Serial.print("AP IP address: ");
+      Serial.println(myIP);
+    } else {
+      // configure as WiFi client
+      // IPAddress ip(192, 168, 0, IP_ADDRESS); // set desired IP Address
+      // IPAddress subnet(255, 255, 255, 0); // set subnet mask 
+      // IPAddress gateway(192, 168, 0, 1); // set gateway 
+      //WiFi.config(ip, dns, gateway, subnet);
+      WiFi.config(local_IP, gateway, subnet);
+      Serial.print(F("Setting static ip to: "));
+      Serial.println(local_IP);
+      WiFi.begin ( ssid, password );
+      Serial.println ( "" );
+      // Wait for connection
+      while ( WiFi.status() != WL_CONNECTED ) {
+          delay ( 500 );
+          Serial.print ( "." );
+      }
+          
+      Serial.println ( "" );
+      Serial.print ( "Connected to " );
+      Serial.println ( ssid );
+      Serial.print ( "IP address: " );
+      Serial.println ( WiFi.localIP() );
+
     }
     
-    Serial.println ( "" );
-    Serial.print ( "Connected to " );
-    Serial.println ( ssid );
-    Serial.print ( "IP address: " );
-    Serial.println ( WiFi.localIP() );
-    if ( mdns.begin ( "esp8266", WiFi.localIP() ) ) {
-        Serial.println ( "MDNS responder started" );
-    }
+//    if ( mdns.begin ( "esp8266", WiFi.localIP() ) ) {
+//        Serial.println ( "MDNS responder started" );
+//    }
     
     server.on ( "/", []() {handleRoot();} );
     
     server.on ( "/breathe", []() {setColor(6); brightness=150 ;transition=3; handleRoot();} );
-    server.on ( "/awake", []() {setColor(6); brightness=250; transition=2; handleRoot();} );
-    server.on ( "/chimes", []() {setColor(6); brightness=250; transition=4; handleRoot();} );
+    server.on ( "/awake", []() {setColor(6); brightness=250; transition=4; handleRoot();} );
+    server.on ( "/chimes", []() {setColor(6); brightness=250; transition=2; handleRoot();} );
     server.on ( "/off", []() {setColor(0); handleRoot();} );
+
+    server.on ( "/brighten", []() {brighten(); handleRoot();} );
+    server.on ( "/dim", []() {dim(); handleRoot();} );
+
+    server.on ( "/faster", []() {faster(); handleRoot();} );
+    server.on ( "/slower", []() {slower(); handleRoot();} );
+
+    server.on ( "/s10", []() {setSpeed(10); handleRoot();} );
+    server.on ( "/s20", []() {setSpeed(20); handleRoot();} );
+    server.on ( "/s50", []() {setSpeed(50); handleRoot();} );
+    server.on ( "/s100", []() {setSpeed(100); handleRoot();} );
+    server.on ( "/s500", []() {setSpeed(150); handleRoot();} );
+    server.on ( "/s1000", []() {setSpeed(150); handleRoot();} );
+    server.on ( "/s1500", []() {setSpeed(150); handleRoot();} );
+    server.on ( "/s2000", []() {setSpeed(150); handleRoot();} );
         
     server.on ( "/white", []() {setColor(1); handleRoot();} );
     server.on ( "/red", []() {setColor(2); handleRoot();} );
@@ -257,8 +292,8 @@ void setup ( void ) {
     server.on ( "/orange", []() {setColor(6); handleRoot();} );
     server.on ( "/pink", []() {setColor(7); handleRoot();} );
     server.on ( "/black", []() {setColor(0); handleRoot();} );
-    server.on ( "/brighten", []() {brighten(); handleRoot();} );
-    server.on ( "/dim", []() {dim(); handleRoot();} );
+
+    
     server.on ( "/sinelon", []() {transition=1; handleRoot();} );
     server.on ( "/bpm", []() {transition=2; handleRoot();} );
     server.on ( "/gradient", []() {transition=3; handleRoot();} );
@@ -270,9 +305,9 @@ void setup ( void ) {
 }
 
 void loop ( void ) {
-    mdns.update();
+    // mdns.update();
     server.handleClient();
-     // run transition
+    // run transition
     if (transition==1) t_sinelon();
     else if (transition==2) t_bpm();
     else if (transition==3) t_gradient();
@@ -284,9 +319,9 @@ void loop ( void ) {
     // send the 'leds' array out to the actual LED strip
     FastLED.show();  
     // insert a delay to keep the framerate modest
-    FastLED.delay(1000/FRAMES_PER_SECOND); 
+    FastLED.delay(1000/speed); 
     // do some periodic updates
-    EVERY_N_MILLISECONDS( 20 ) { idx++; } // slowly cycle the index variable
+    EVERY_N_MILLISECONDS( 5000/speed ) { idx++; } // slowly cycle the index variable
     //EVERY_N_MILLISECONDS(5000) { Serial.println(millis()); }
 }
 
@@ -385,5 +420,32 @@ void dim()
   FastLED.setBrightness(brightness);
   Serial.print("Brightness: ");
   Serial.println(brightness);
+}
+
+
+void setSpeed(int newSpeed) 
+{
+  speed = newSpeed;
+  FastLED.delay(1000/speed); 
+  Serial.print("Speed (frames/second): ");
+  Serial.println(speed);
+}
+
+void faster()
+{
+  speed+=10;
+  if (speed>3000) speed=3000;
+  FastLED.delay(1000/speed); 
+  Serial.print("Speed (frames/second): ");
+  Serial.println(speed);
+}
+
+void slower()
+{
+  speed-=10;
+  if (speed<=10) speed=10;
+  FastLED.delay(1000/speed); 
+  Serial.print("Speed (frames/second): ");
+  Serial.println(speed);
 }
 

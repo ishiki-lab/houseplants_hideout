@@ -1,4 +1,4 @@
-/* Rotating Chair Control - Thanks Plants installation
+/* Rotating Chair Control - Thanks Plants / Houseplant hideaway installation
  * 2021 francesco.anselmo@gmail.com
  *
  * The interaction works like this:
@@ -22,10 +22,8 @@
  *  2. Different chimes sounds
  *  3. Random choice of chimes and groups when in chimes mode (3 out of 6)
  *  4. DMX support for ambient lighting
- *  5. Encoder check and calibration
- *  6. Lighting transition speed support
- *  7. Web server buttons to enable/disable meditation voice and reset to IDLE
- *  8. Add a minimum angle check when moving in playing mode
+ *  5. Web server buttons to enable/disable meditation voice and reset to IDLE
+ *  6. Add a minimum angle check when moving in playing mode
  */
 
 import processing.serial.*;
@@ -33,9 +31,8 @@ import java.awt.geom.Point2D;
 import ddf.minim.*;
 import processing.net.*;
 
-
 boolean USE_SERIAL = true;
-boolean USE_HTTP = false;
+boolean USE_HTTP = true;
 
 int NUMBER = 6;
 float SCALING = 5;
@@ -47,7 +44,8 @@ float VOLUME_LEVEL = 0.2;
 String AMBIENT_SOUND_FILE_NAME = "thanks_plants_audio.mp3";
 String IDLE_SOUND_FILE_NAME = "birdsong.mp3";
 String CHIMES_SOUND_FILE_NAME = "chimes.wav";
-int HTTP_DELAY_TIME = 500;
+int HTTP_DELAY_TIME = 100;
+long MAX_POS = 2000;
 
 static abstract class MotionStatus {  
   static final int IDLE = 0;
@@ -65,8 +63,8 @@ int motionStatus = MotionStatus.IDLE;
 int playStatus = PlayStatus.IDLE;
 int prevTime = 0;
 int prevStep = 0;
-float prevAngle = 0;
-float idleAngle = 0;
+float prevAngle = PI;
+float idleAngle = PI;
 
 int lf = 10;      // ASCII linefeed
 int selSource = 0;
@@ -81,10 +79,10 @@ Serial myPort;  // Create object from Serial class
 String val;     // Data received from the serial port
 PFont f, fb, ft;
 
-float angle = 0;
-float angleDeg = 0;
-float angleDegEnd = 0;
-float idleAngleDeg = 0;
+float angle = PI;
+float angleDeg = 180;
+float angleDegEnd = 180;
+float idleAngleDeg = 180;
 float percentMovement = 0;
 int fading = 255;
 
@@ -139,7 +137,7 @@ void setup() {
     printArray(Serial.list());
     String portName = Serial.list()[0]; //change the 0 to a 1 or 2 etc. to match your port
     //String portName = "/dev/ttyACM0"; 
-    myPort = new Serial(this, portName, 9600);
+    myPort = new Serial(this, portName, 115200);
     val = myPort.readStringUntil(lf);
   }
   //prevTime = millis();
